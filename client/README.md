@@ -16,6 +16,8 @@ Requirements
 
 - python2.7
 - kivy
+- protobuf2
+- grpc
 
 Python/kivy combination was chosen because it was cheap and easy to setup, available on most systems, and doesn't require a lot of code to get a lot done. It's also very easy to read and follow, even when you're unfamiliar with the language/toolkit.
 
@@ -24,4 +26,10 @@ For this test client, game performance is not critical. So I prioritised setup a
 Installation
 ------------
 
-apt install python-kivy python
+# install core dependencies
+apt install python-kivy python protobuf-python
+
+# install gRPC
+python -m pip install --upgrade pip
+python -m pip install grpcio
+python -m pip install grpcio-tools

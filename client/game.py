@@ -1,8 +1,11 @@
 #!/usr/bin/env python2
-import math, random
+import math, random, sys, argparse, grpc
+import generated.game_pb2_grpc as game_rpc
+import generated.game_pb2 as game_pb2
+
+# everything kivy
 import kivy
 kivy.require('1.1.1')
-
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty
@@ -10,6 +13,9 @@ from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.graphics import Rectangle, Color, Line, Ellipse
 from kivy.core.window import Window 
+
+def DEBUG(s):
+    print(s)
 
 class Rect(Rectangle):
     def __init__(self, x, y, width, height):
@@ -65,7 +71,7 @@ class Level:
         self.difficulty = difficulty
 
     def __getattr__(self, item):
-        if self.difficulty and item in ('playable', 'colors', 'speed'):
+        if self.difficulty and item in ('speed'):
             return self.difficulty[item]
 
 class Player:
@@ -99,20 +105,41 @@ class GameBoard:
         pass
 
 class CaptiveGame(Widget):
-    def init(self):
-        xRatio = 10
-        yRatio = 8
-        xStep = Window.width / xRatio
-        yStep = Window.height / yRatio
+    def __init__(self):
+        # setup config from command line args
+        parser = argparse.ArgumentParser(description='Test Game Client')
+        parser.add_argument('server_host', metavar='N', type=str, help='server host')
+        parser.add_argument('server_port', metavar='N', type=int, help='server port')
 
+        args = parser.parse_args()
+
+        if not args.server_host or not args.server_port:
+            args.print_help()   
+            sys.exit(1)
+
+        self.host = args.server_host
+        self.port = args.server_port
+
+        super(Widget, self).__init__()
+
+    def init(self ):
+        DEBUG('Connecting to server [%s:%s]' % (self.host, self.port))
+
+        # grab the minimum config from argv
+        self._Channel = grpc.insecure_channel('%s:%s' % (self.host, self.port))
+        self._Stub = game_rpc.GameServiceStub(self._Channel)
+    
         # setup the default objects that we are going to pass updates to later
         self.__initLevels()
         self.__initPlayers()
 
         # setup the game board 
-        self._GameBoard = GameBoard(x=xStep, y=yStep, width=Window.width - (2 * xStep), height=Window.height - (2 * yStep), canvas=self.canvas)
+        #self._GameBoard = GameBoard(x=xStep, y=yStep, width=Window.width - (2 * xStep), height=Window.height - (2 * yStep), canvas=self.canvas)
 
-        self.updatees = self._Levels + self._Players + [ self._GameBoard ]
+        self.updatees = []
+
+        # we need the list of levels from the server to start
+        self.getLevelList()
 
     def __initLevels(self, levels = []):
         self._Levels = levels
@@ -130,6 +157,13 @@ class CaptiveGame(Widget):
         for c in self.updatees:
             if c.on_touch_down(touch):
                 return
+
+    def getLevelList(self):
+        # ask the server for level list, and wait for response
+        action = game_pb2.GetLevels()
+        print('Action: %s' % action)
+        reply = self._Stub.DoAction(action)
+        print('Reply: %s' % reply)
 
 class CaptiveApp(App):
     def build(self):
