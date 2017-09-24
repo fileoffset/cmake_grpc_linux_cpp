@@ -1,25 +1,112 @@
 #pragma once
 
+#include "game.grpc.pb.h"
+
+#include <grpc++/grpc++.h>
+
 #include <thread>
 
 namespace cs {
 
-class GameServer
+class GameServerImpl;
+ 
+class IActionHandler
 {
 public:
-    GameServer();
+    virtual ~IActionHandler() = default;
 
-    bool Run() { if (m_MainThread.joinable()) m_MainThread.join(); }
+    virtual void HandleAction(const cliser::StartGame& action, cliser::ActionReply* reply) = 0;
+    virtual void HandleAction(const cliser::GetLevels& action, cliser::ActionReply* reply) = 0;
+    virtual void HandleAction(const cliser::EndGame& action, cliser::ActionReply* reply) = 0;
+};
+   
+class IRpcRequest
+{
+public:
+    virtual void Process() = 0;
+    virtual void Finish() = 0;
+};
+
+class RpcRequest : public IRpcRequest
+{
+public:
+    RpcRequest();
+
+    void Process() override;
+    void Finish() override;
 
 private:
-    void RunLoop();
+    grpc::ServerContext m_Ctx;
 
+    cliser::Action m_Request;
+    cliser::ActionReply m_Reply;
+
+    grpc::ServerAsyncResponseWriter<cliser::ActionReply> m_Responder;
+};
+
+class GameServer : private IActionHandler
+{
+    friend GameServerImpl;
+
+public:
+    GameServer();
+    ~GameServer();
+
+    void Run();
+
+private:
+    void HandleAction(const cliser::StartGame& action, cliser::ActionReply* reply) override;
+    void HandleAction(const cliser::GetLevels& action, cliser::ActionReply* reply) override;
+    void HandleAction(const cliser::EndGame& action, cliser::ActionReply* reply) override;
+
+    void HandleRpcEvents();
+
+    void StartRpcServer();
+    
 private:
     bool m_IsRunning;
     bool m_IsShuttingDown;
 
-    std::thread m_MainThread;
-    std::thread m_BackgroundThread;
+    std::thread m_RpcServerThread;
+    std::thread m_RpcHandlerThread;
+
+    std::unique_ptr<grpc::Server> m_RpcServer;
+    std::unique_ptr<grpc::ServerCompletionQueue> m_CompletionQueue;
+};
+
+class GameServerImpl final : public cliser::GameService::Service
+{
+public:
+    GameServerImpl(IActionHandler& actionHandler)
+    : m_ActionHandler(actionHandler)
+    {
+
+    }
+
+private:
+    grpc::Status DoAction(
+        grpc::ServerContext* context, 
+        const cliser::Action* request, 
+        cliser::ActionReply* reply) override 
+    {
+        switch (request->messages_case())
+        {
+            case cliser::Action::kStartGame:
+                m_ActionHandler.HandleAction(request->startgame(), reply); break;
+            case cliser::Action::kGetLevels:
+                m_ActionHandler.HandleAction(request->getlevels(), reply); break;
+            case cliser::Action::kEndGame:
+                m_ActionHandler.HandleAction(request->endgame(), reply); break;
+            case cliser::Action::MESSAGES_NOT_SET:
+                return grpc::Status::CANCELLED;
+
+        }
+
+        return grpc::Status::OK;
+    }
+
+private:
+    IActionHandler& m_ActionHandler;
 };
 
 } // namespace cs {

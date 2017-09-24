@@ -1,3 +1,5 @@
 build/
 cmake_install.cmake
 Makefile
+*.pb.h
+*.pb.cc

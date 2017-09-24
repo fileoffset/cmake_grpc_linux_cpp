@@ -27,7 +27,7 @@ Installation
 ------------
 
 # install core dependencies
-apt install python-kivy python protobuf-python
+apt install python-kivy python protobuf-python libgrpc-dev
 
 # install gRPC
 python -m pip install --upgrade pip

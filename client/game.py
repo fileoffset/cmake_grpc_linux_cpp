@@ -108,8 +108,8 @@ class CaptiveGame(Widget):
     def __init__(self):
         # setup config from command line args
         parser = argparse.ArgumentParser(description='Test Game Client')
-        parser.add_argument('server_host', metavar='N', type=str, help='server host')
-        parser.add_argument('server_port', metavar='N', type=int, help='server port')
+        parser.add_argument('server_host', metavar='host', type=str, help='server host')
+        parser.add_argument('server_port', metavar='port', type=int, help='server port')
 
         args = parser.parse_args()
 
