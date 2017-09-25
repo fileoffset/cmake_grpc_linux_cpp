@@ -23,10 +23,12 @@ void GameServer::Run()
     std::cout << "Game server started" << std::endl;
 
     m_RpcServerThread = std::thread([this](){ StartRpcServer(); });
-    m_RpcHandlerThread = std::thread([this](){ HandleRpcEvents(); });
 
     if (m_RpcServerThread.joinable())
         m_RpcServerThread.join();
+
+    if (m_RpcHandlerThread.joinable())
+        m_RpcHandlerThread.join();
 
     std::cout << "Game server stopped" << std::endl;
 }
@@ -48,8 +50,8 @@ void GameServer::HandleAction(const cliser::EndGame& action, cliser::ActionReply
 
 void GameServer::HandleRpcEvents()
 {
-    void* tag;  // uniquely identifies a request.
-    bool ok;
+    void* tag = nullptr;  // uniquely identifies a request.
+    bool ok = false;
 
     // Block waiting to read the next event from the completion queue. The
     // event is uniquely identified by its tag, which in this case is the
@@ -85,8 +87,12 @@ void GameServer::StartRpcServer()
     
     // Finally assemble the server.
     m_RpcServer = builder.BuildAndStart();
+    m_CompletionQueue = builder.AddCompletionQueue();
     
     std::cout << "Server listening on " << serverAddress << std::endl;
+
+    // start a thread to handle polling for rpc events
+    m_RpcHandlerThread = std::thread([this](){ HandleRpcEvents(); });
 
     // Wait for the server to shutdown. Note that some other thread must be
     // responsible for shutting down the server for this call to ever return.
