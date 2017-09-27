@@ -13,6 +13,7 @@ from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.graphics import Rectangle, Color, Line, Ellipse
 from kivy.core.window import Window 
+from kivy.uix.button import Button
 
 def DEBUG(s):
     print(s)
@@ -106,10 +107,12 @@ class GameBoard:
 
 class CaptiveGame(Widget):
     def __init__(self):
+        Widget.__init__(self)
+        
         # setup config from command line args
         parser = argparse.ArgumentParser(description='Test Game Client')
-        parser.add_argument('server_host', metavar='host', type=str, help='server host')
-        parser.add_argument('server_port', metavar='port', type=int, help='server port')
+        parser.add_argument('server_host', metavar='host', type=str, help='server host', default='127.0.0.1')
+        parser.add_argument('server_port', metavar='port', type=int, help='server port', default='50051')
 
         args = parser.parse_args()
 
@@ -118,11 +121,11 @@ class CaptiveGame(Widget):
             sys.exit(1)
 
         self.host = args.server_host
-        self.port = args.server_port
+        self.port = args.server_port      
+        
+        self.init()
 
-        super(Widget, self).__init__()
-
-    def init(self ):
+    def init(self):
         DEBUG('Connecting to server [%s:%s]' % (self.host, self.port))
 
         # grab the minimum config from argv
@@ -133,13 +136,16 @@ class CaptiveGame(Widget):
         self.__initLevels()
         self.__initPlayers()
 
-        # setup the game board 
-        #self._GameBoard = GameBoard(x=xStep, y=yStep, width=Window.width - (2 * xStep), height=Window.height - (2 * yStep), canvas=self.canvas)
-
         self.updatees = []
+
+        self.canvas.add(Color(1,1,1))
 
         # we need the list of levels from the server to start
         self.getLevelList()
+
+    def build(self):
+        # return a Button() as a root widget
+        return Button(text='hello world')
 
     def __initLevels(self, levels = []):
         self._Levels = levels
@@ -160,17 +166,20 @@ class CaptiveGame(Widget):
 
     def getLevelList(self):
         # ask the server for level list, and wait for response
-        action = game_pb2.GetLevels()
-        print('Action: %s' % action)
+        action = game_pb2.Action()
+        action.get_levels.SetInParent()
+        action.get_levels.client_version = '1.0'
+        print('Action: %r' % action)
         reply = self._Stub.DoAction(action)
-        print('Reply: %s' % reply)
+        if reply:
+            print('Reply: %r' % reply)
 
 class CaptiveApp(App):
     def build(self):
         game = CaptiveGame()
-        game.init()
         Clock.schedule_interval(game.update, 1.0 / 60.0)
         return game
+        #return Button(text='hello world')
 
 if __name__ == '__main__':
     CaptiveApp().run()

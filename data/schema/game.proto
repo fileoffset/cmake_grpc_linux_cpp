@@ -9,8 +9,9 @@ enum CellType {
   RESOURCE = 4; 
 }
 
+// you can tell it's protobuf cos it's disgusting snake-case
 message Cell {
-  required CellType cellType = 1;
+  required CellType cell_type = 1;
 }
 
 // game objects required by actions
@@ -23,11 +24,11 @@ message Level {
 
 // the actions the clients will send to the server
 message StartGame {
-  required string playerName = 1;
+  required string player_name = 1;
 }
 
 message GetLevels {
-
+  required string client_version = 1;
 }
 
 message EndGame {
@@ -37,15 +38,15 @@ message EndGame {
 // the union type for all client => server actions
 message Action {
   oneof messages {
-    StartGame startGame = 2;
-    GetLevels getLevels = 3;
-    EndGame endGame = 4;
+    StartGame start_game = 2;
+    GetLevels get_levels = 3;
+    EndGame end_game = 4;
   }
 }
 
 // the reply messages for the client => server actions
 message StartGameReply {
-  required string playerName = 1;
+  required string player_name = 1;
 }
 
 message GetLevelsReply {
@@ -59,9 +60,9 @@ message EndGameReply {
 // the union type for the client => server actions
 message ActionReply {
   oneof messages {
-    StartGameReply startGameReply = 1;
-    GetLevelsReply getLevelsReply = 2;
-    EndGameReply endGameReply = 3;
+    StartGameReply start_game_reply = 1;
+    GetLevelsReply get_levels_reply = 2;
+    EndGameReply end_game_reply = 3;
   }
 }
 

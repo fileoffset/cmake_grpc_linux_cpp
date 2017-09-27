@@ -35,17 +35,32 @@ void GameServer::Run()
 
 void GameServer::HandleAction(const cliser::StartGame& action, cliser::ActionReply* reply)
 {
+    std::cout << "ACTION: StartGame\n";
 
 }
 
 void GameServer::HandleAction(const cliser::GetLevels& action, cliser::ActionReply* reply)
 {
+    std::cout << "ACTION: GetLevels\n";
+    std::cout << "ACTION:   version: " << action.client_version() << '\n';
+    std::cout << "ACTION REPLY: " << reply << '\n';
+
+    auto levelsReply = reply->mutable_get_levels_reply();
+
+    for (int i = 0; i < 3; ++i)
+    {
+        levelsReply->add_levels();
+        auto level = levelsReply->mutable_levels(i);
+        level->set_name("Level x");
+        level->set_cell_width(20);
+        level->set_cell_height(20);
+    }   
 
 }
 
 void GameServer::HandleAction(const cliser::EndGame& action, cliser::ActionReply* reply)
 {
-
+    std::cout << "ACTION: EndGame\n";
 }
 
 void GameServer::HandleRpcEvents()
